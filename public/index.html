@@ -227,6 +227,109 @@
     }
 
     #msg-auth { margin-top: 10px; }
+
+    /* ---- MODAL CONFIRMACION ---- */
+    #confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    #confirm-overlay.open { display: flex; }
+
+    #confirm-box {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      width: 360px;
+      max-width: 92vw;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      text-align: center;
+    }
+
+    #confirm-box .confirm-icon {
+      width: 52px;
+      height: 52px;
+      background: #fce8e6;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 1.5rem;
+    }
+
+    #confirm-box h4 {
+      font-size: 1.05rem;
+      color: #222;
+      margin-bottom: 8px;
+    }
+
+    #confirm-box p {
+      font-size: 0.88rem;
+      color: #666;
+      margin-bottom: 22px;
+    }
+
+    #confirm-box .confirm-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    #confirm-box .confirm-btns button {
+      flex: 1;
+      max-width: 130px;
+    }
+
+    /* ---- TOAST NOTIFICATIONS ---- */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+      min-width: 260px;
+      max-width: 360px;
+      pointer-events: all;
+      animation: toastIn 0.3s ease;
+    }
+
+    @keyframes toastIn {
+      from { transform: translateX(110%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+
+    @keyframes toastOut {
+      from { transform: translateX(0);    opacity: 1; }
+      to   { transform: translateX(110%); opacity: 0; }
+    }
+
+    .toast.saliendo { animation: toastOut 0.3s ease forwards; }
+
+    .toast-success { background: #1e7e34; color: white; }
+    .toast-error   { background: #c5221f; color: white; }
+    .toast-info    { background: #1a73e8; color: white; }
+
+    .toast-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .toast-msg  { flex: 1; }
   </style>
 </head>
 <body>
@@ -321,6 +424,22 @@
 
 </main>
 
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- MODAL CONFIRMACION -->
+<div id="confirm-overlay">
+  <div id="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <h4 id="confirm-title">Confirmar accion</h4>
+    <p id="confirm-msg">Esta accion no se puede deshacer.</p>
+    <div class="confirm-btns">
+      <button class="btn btn-warning" id="confirm-cancel">Cancelar</button>
+      <button class="btn btn-danger"  id="confirm-ok">Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR CLIENTE -->
 <div class="modal-overlay" id="modal-cliente">
   <div class="modal">
@@ -378,10 +497,46 @@
     if (name === 'pedidos') cargarClientesSelect()
   }
 
+  // ---- TOAST ----
   function mostrarMsg(id, msg, tipo) {
-    const el = document.getElementById(id)
-    el.innerHTML = '<div class="alert alert-' + tipo + '">' + msg + '</div>'
-    setTimeout(() => el.innerHTML = '', 4000)
+    // mantiene compatibilidad con los div de msg existentes (ya no los usa visualmente)
+    mostrarToast(msg, tipo)
+  }
+
+  function mostrarToast(msg, tipo) {
+    const iconos = { success: '✅', error: '❌', info: 'ℹ️' }
+    const container = document.getElementById('toast-container')
+    const toast = document.createElement('div')
+    toast.className = 'toast toast-' + tipo
+    toast.innerHTML = `<span class="toast-icon">${iconos[tipo] || 'ℹ️'}</span><span class="toast-msg">${msg}</span>`
+    container.appendChild(toast)
+    setTimeout(() => {
+      toast.classList.add('saliendo')
+      setTimeout(() => toast.remove(), 320)
+    }, 3500)
+  }
+
+  // ---- CONFIRMACION PERSONALIZADA ----
+  function confirmar(titulo, mensaje, txtOk = 'Eliminar') {
+    return new Promise(resolve => {
+      document.getElementById('confirm-title').textContent = titulo
+      document.getElementById('confirm-msg').textContent  = mensaje
+      document.getElementById('confirm-ok').textContent   = txtOk
+      const overlay = document.getElementById('confirm-overlay')
+      overlay.classList.add('open')
+
+      function cerrar(result) {
+        overlay.classList.remove('open')
+        document.getElementById('confirm-ok').removeEventListener('click', onOk)
+        document.getElementById('confirm-cancel').removeEventListener('click', onCancel)
+        resolve(result)
+      }
+      function onOk()     { cerrar(true)  }
+      function onCancel() { cerrar(false) }
+
+      document.getElementById('confirm-ok').addEventListener('click', onOk)
+      document.getElementById('confirm-cancel').addEventListener('click', onCancel)
+    })
   }
 
   // ---- AUTH ----
@@ -484,10 +639,12 @@
   }
 
   async function eliminarCliente(id) {
-    if (!confirm('¿Eliminar este cliente?')) return
+    const ok = await confirmar('Eliminar cliente', '¿Seguro que deseas eliminar este cliente? Esta accion no se puede deshacer.')
+    if (!ok) return
     const res = await fetch(API + '/clientes/' + id, { method: 'DELETE', headers: headers() })
     const data = await res.json()
-    if (data.state) cargarClientes()
+    if (data.state) { mostrarToast('Cliente eliminado correctamente', 'success'); cargarClientes() }
+    else mostrarToast('Error al eliminar: ' + (data.msg || ''), 'error')
   }
 
   async function cargarClientesSelect() {
@@ -607,10 +764,12 @@
   }
 
   async function eliminarPedido(id) {
-    if (!confirm('¿Eliminar este pedido?')) return
+    const ok = await confirmar('Eliminar pedido', '¿Seguro que deseas eliminar este pedido? Esta accion no se puede deshacer.')
+    if (!ok) return
     const res = await fetch(API + '/pedidos/' + id, { method: 'DELETE', headers: headers() })
     const data = await res.json()
-    if (data.state) cargarPedidos()
+    if (data.state) { mostrarToast('Pedido eliminado correctamente', 'success'); cargarPedidos() }
+    else mostrarToast('Error al eliminar: ' + (data.msg || ''), 'error')
   }
 
   function cerrarModal(id) {
