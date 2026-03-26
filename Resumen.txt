@@ -1,0 +1,294 @@
+====================================================================
+  RESUMEN COMPLETO - TALLER API RESTFul - GESTION DE PEDIDOS
+  ELECTIVA-II (8108277) - I-2026
+  Ultima actualizacion: 24 de marzo de 2026
+====================================================================
+
+--------------------------------------------------------------------
+ESTADO ACTUAL DEL PROYECTO (donde quedamos)
+--------------------------------------------------------------------
+
+COMPLETADO:
+  [x] Proyecto Node.js inicializado (npm init)
+  [x] Dependencias instaladas
+  [x] Modelos Mongoose: Cliente.js y Pedido.js
+  [x] Middleware JWT: middleware/auth.js
+  [x] Rutas con Swagger: routes/auth.js, clientes.js, pedidos.js
+  [x] Servidor principal: index.js
+  [x] Configuracion Swagger: swagger.js
+  [x] Interfaz grafica: public/index.html
+  [x] Variables de entorno: .env
+  [x] MongoDB LOCAL funcionando (localhost:27017)
+
+PENDIENTE PARA MANANA:
+  [ ] Conectar a MongoDB Atlas (problema de DNS en red actual)
+      - Probar desde hotspot del celular
+      - URI Atlas guardada en .env como MONGODB_ATLAS
+  [ ] Despliegue en la nube (Render o Railway)
+  [ ] Diagramas del sistema (clases, componentes, despliegue)
+  [ ] Subir URI al Padlet del profesor
+
+PARA RETOMAR MANANA:
+  1. Abrir terminal en la carpeta TALLER
+  2. Ejecutar: node index.js
+  3. Abrir: http://localhost:3000
+
+--------------------------------------------------------------------
+CREDENCIALES Y CONFIGURACION
+--------------------------------------------------------------------
+
+MongoDB LOCAL (actualmente en uso):
+  URI: mongodb://localhost:27017/gestion_pedidos
+  Servicio: net start MongoDB (como administrador si no inicia)
+
+MongoDB Atlas (para el despliegue final):
+  URI: mongodb+srv://danielrodriguezxt27_db_user:oz8lMKAalsj6ZPi0
+       @tallerelectiva.f0d9ls5.mongodb.net/gestion_pedidos
+       ?retryWrites=true&w=majority&appName=TallerElectiva
+  Cluster: TallerElectiva
+  Usuario: danielrodriguezxt27_db_user
+  Network Access: 0.0.0.0/0 (ya configurado)
+
+Para cambiar de LOCAL a ATLAS en .env:
+  Cambiar MONGODB_URI=mongodb://localhost:27017/gestion_pedidos
+  Por     MONGODB_URI=valor de MONGODB_ATLAS
+
+JWT Secret: mi_clave_secreta_jwt_2026
+Puerto: 3000
+
+--------------------------------------------------------------------
+1. QUE ES ESTE PROYECTO?
+--------------------------------------------------------------------
+Una API RESTful en Node.js para gestionar clientes y pedidos.
+Usa MongoDB como base de datos, JWT para seguridad,
+y Swagger para documentar los endpoints.
+
+Tecnologias usadas:
+  - Node.js + Express     -> El servidor y las rutas HTTP
+  - Mongoose              -> Para conectar y manejar MongoDB
+  - jsonwebtoken (JWT)    -> Para proteger los endpoints
+  - swagger-jsdoc         -> Genera la documentacion automaticamente
+  - swagger-ui-express    -> Muestra la documentacion en /docs
+  - dotenv                -> Maneja las variables de entorno (.env)
+
+--------------------------------------------------------------------
+2. ESTRUCTURA DE ARCHIVOS Y QUE HACE CADA UNO
+--------------------------------------------------------------------
+
+TALLER/
+|
++-- index.js
+|     -> Archivo PRINCIPAL que arranca todo.
+|     -> Conecta a MongoDB con mongoose.connect()
+|     -> Registra middlewares (express.json, express.static)
+|     -> Monta las rutas: /auth, /clientes, /pedidos
+|     -> Monta Swagger en /docs
+|     -> Sirve la interfaz grafica desde /public
+|     -> Arranca el servidor en puerto 3000
+|
++-- swagger.js
+|     -> Configura Swagger: titulo, version, descripcion de la API
+|     -> Le dice a swagger-jsdoc donde buscar docs: routes/*.js
+|     -> Define esquema de seguridad "bearerAuth" (para JWT)
+|     -> Exporta swaggerSpec que usa index.js
+|
++-- .env
+|     -> Variables de entorno (NO se sube a GitHub)
+|     -> MONGODB_URI    : conexion activa (local o atlas)
+|     -> MONGODB_ATLAS  : URI de Atlas guardada para el despliegue
+|     -> SECRET         : clave para firmar/verificar tokens JWT
+|     -> PORT           : puerto del servidor (3000)
+|
++-- .gitignore
+|     -> Ignora node_modules/ y .env en Git
+|
++-- models/
+|   |
+|   +-- Cliente.js
+|   |     -> Esquema de datos de un Cliente en MongoDB
+|   |     -> Campos: nombre, email (unico), telefono, direccion
+|   |     -> timestamps: true -> guarda createdAt y updatedAt
+|   |
+|   +-- Pedido.js
+|         -> Esquema de datos de un Pedido en MongoDB
+|         -> Campos:
+|             cliente       -> ObjectId que referencia a Cliente (relacion 1:N)
+|             productos     -> array [{nombre, cantidad, precioUnitario}]
+|             estado        -> pendiente/en_proceso/enviado/entregado/cancelado
+|             total         -> calculado automaticamente (hook pre save)
+|             observaciones -> texto libre
+|         -> Hook pre('save'): total = suma(cantidad * precioUnitario)
+|
++-- middleware/
+|   |
+|   +-- auth.js
+|         -> Guardian de rutas protegidas
+|         -> Lee header: Authorization: Bearer <token>
+|         -> Sin token      -> 401 "Token no proporcionado"
+|         -> Token invalido -> 401 "Token invalido"
+|         -> Token expirado -> 401 "Token expirado"
+|         -> Token valido   -> llama next(), agrega req.usuario
+|
++-- routes/
+|   |
+|   +-- auth.js
+|   |     -> Ruta PUBLICA (sin token)
+|   |     -> POST /auth/token
+|   |         Recibe: { id, nombre }
+|   |         Devuelve: { state: true, token: "eyJ..." }
+|   |         El token expira en 1 hora
+|   |
+|   +-- clientes.js
+|   |     -> Todas requieren JWT
+|   |     -> GET    /clientes        -> Lista clientes
+|   |     -> GET    /clientes/:id    -> Un cliente por ID
+|   |     -> POST   /clientes        -> Crear cliente
+|   |     -> PUT    /clientes/:id    -> Actualizar cliente
+|   |     -> DELETE /clientes/:id    -> Eliminar cliente
+|   |
+|   +-- pedidos.js
+|         -> Todas requieren JWT
+|         -> GET    /pedidos         -> Lista pedidos (con populate del cliente)
+|         -> GET    /pedidos/:id     -> Un pedido por ID
+|         -> POST   /pedidos         -> Crear pedido
+|         -> PUT    /pedidos/:id     -> Actualizar estado/observaciones
+|         -> DELETE /pedidos/:id     -> Eliminar pedido
+|
++-- public/
+    |
+    +-- index.html
+          -> Interfaz grafica completa en HTML/CSS/JS puro
+          -> Seccion Autenticacion: genera el token JWT
+          -> Seccion Clientes: CRUD completo con tabla
+          -> Seccion Pedidos: CRUD completo con tabla y badges de estado
+          -> Modales para editar cliente y pedido
+          -> Se sirve en: http://localhost:3000
+
+--------------------------------------------------------------------
+3. COMO FUNCIONA JWT (Para la sustentacion)
+--------------------------------------------------------------------
+
+JWT = JSON Web Token. Estandar RFC 7519. Transmite informacion
+segura entre cliente y servidor.
+
+Estructura (tres partes separadas por punto):
+  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9  <- Header (algoritmo HS256)
+  .eyJzdWIiOiJ1c2VyMDEiLCJub21icmUiOi... <- Payload (datos: id, nombre, exp)
+  .SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV... <- Signature (firma HMAC)
+
+Flujo en este proyecto:
+  1. POST /auth/token con { id, nombre }
+  2. Servidor hace jwt.sign({sub:id, nombre, exp:ahora+1hora}, SECRET)
+  3. Devuelve el token al cliente
+  4. Cliente envia en cada peticion: Authorization: Bearer <token>
+  5. middleware/auth.js intercepta, hace jwt.verify(token, SECRET)
+  6. Si es valido -> deja pasar. Si no -> responde 401
+
+Por que JWT?
+  -> Stateless: servidor no guarda sesiones
+  -> Funciona entre dominios (no usa cookies)
+  -> Compacto para HTTP
+
+--------------------------------------------------------------------
+4. COMO FUNCIONA SWAGGER (Para la sustentacion)
+--------------------------------------------------------------------
+
+Documentacion interactiva en: http://localhost:3000/docs
+
+Como se genera:
+  1. swagger.js define titulo, version, servidor base, seguridad
+  2. En cada ruta se escribe /** @swagger */ con YAML:
+       summary, tags, security, parameters, requestBody, responses
+  3. swagger-jsdoc lee esos comentarios -> genera JSON OpenAPI
+  4. swagger-ui-express muestra ese JSON como pagina interactiva
+
+Como probar endpoints protegidos en Swagger:
+  1. Ejecutar POST /auth/token -> copiar el token
+  2. Clic en "Authorize" (candado arriba a la derecha)
+  3. Pegar el token (SIN la palabra Bearer)
+  4. Clic Authorize -> Close
+  5. Ya puedes ejecutar cualquier endpoint con "Try it out"
+
+--------------------------------------------------------------------
+5. RELACION UNO-A-MUCHOS (Para la sustentacion)
+--------------------------------------------------------------------
+
+Un Cliente tiene muchos Pedidos -> relacion 1:N
+
+  Cliente (1) ─────────────────── (N) Pedido
+
+Implementacion en Mongoose:
+  En Pedido.js:
+    cliente: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente' }
+
+  Cuando se consultan pedidos:
+    Pedido.find().populate('cliente', 'nombre email telefono')
+    -> MongoDB une las dos colecciones automaticamente
+
+Respuesta SIN populate:          Respuesta CON populate:
+  { cliente: "64a1b2c3..." }       { cliente: {
+                                       nombre: "Carlos",
+                                       email: "carlos@mail.com"
+                                     } }
+
+--------------------------------------------------------------------
+6. ENDPOINTS COMPLETOS
+--------------------------------------------------------------------
+
+  PUBLICO:
+  POST   /auth/token     -> Genera JWT. Body: { id, nombre }
+
+  PROTEGIDOS (header: Authorization: Bearer <token>):
+  GET    /clientes       -> Lista clientes
+  GET    /clientes/:id   -> Ver cliente
+  POST   /clientes       -> Crear. Body: {nombre,email,telefono,direccion}
+  PUT    /clientes/:id   -> Actualizar
+  DELETE /clientes/:id   -> Eliminar
+
+  GET    /pedidos        -> Lista pedidos con datos del cliente
+  GET    /pedidos/:id    -> Ver pedido
+  POST   /pedidos        -> Crear. Body: {cliente, productos[], observaciones}
+  PUT    /pedidos/:id    -> Actualizar estado/observaciones
+  DELETE /pedidos/:id    -> Eliminar
+
+  GET    /docs           -> Swagger UI interactivo
+
+--------------------------------------------------------------------
+7. PARA CORRER EL PROYECTO
+--------------------------------------------------------------------
+
+  1. Abrir terminal en carpeta TALLER
+  2. node index.js
+  3. Verificar que diga "Conectado a MongoDB" y "Servidor corriendo"
+  4. Abrir navegador:
+       http://localhost:3000       <- Interfaz grafica
+       http://localhost:3000/docs  <- Swagger
+
+  Si MongoDB no inicia (terminal como administrador):
+       net start MongoDB
+
+--------------------------------------------------------------------
+8. PENDIENTE PARA EL DESPLIEGUE (entrega final)
+--------------------------------------------------------------------
+
+  A. Conectar Atlas (probar desde hotspot o red diferente)
+     - En .env cambiar MONGODB_URI por el valor de MONGODB_ATLAS
+
+  B. Desplegar en Render (gratis):
+     1. Crear cuenta en render.com
+     2. New Web Service -> conectar repositorio GitHub
+     3. Build command: npm install
+     4. Start command: node index.js
+     5. Agregar variables de entorno (MONGODB_URI, SECRET, PORT)
+     6. Copiar la URL del servicio desplegado
+     7. Pegar en el Padlet del profesor
+
+  C. Diagrama de Clases (para los 15 puntos de documentacion):
+     Clases: Cliente, Pedido, ProductoPedido
+     Relacion: Cliente 1 ── N Pedido
+
+  D. Diagrama de Componentes/Despliegue:
+     Cliente (browser) -> Express API -> MongoDB Atlas
+     Componentes: routes/, middleware/, models/
+
+====================================================================

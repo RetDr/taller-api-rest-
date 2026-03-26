@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gestión de Pedidos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+    }
+
+    header {
+      background: #1a73e8;
+      color: white;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    header h1 { font-size: 1.4rem; }
+
+    #token-status {
+      font-size: 0.85rem;
+      background: rgba(255,255,255,0.2);
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    nav {
+      background: #fff;
+      border-bottom: 2px solid #e0e0e0;
+      display: flex;
+      gap: 4px;
+      padding: 0 32px;
+    }
+
+    nav button {
+      padding: 14px 22px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: #555;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+
+    nav button:hover { color: #1a73e8; }
+    nav button.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; }
+
+    main {
+      max-width: 1100px;
+      margin: 28px auto;
+      padding: 0 24px;
+    }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      color: #1a73e8;
+      border-bottom: 1px solid #e8f0fe;
+      padding-bottom: 10px;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-row input, .form-row select, .form-row textarea {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+      border-color: #1a73e8;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #1a73e8; color: white; }
+    .btn-success { background: #34a853; color: white; }
+    .btn-danger  { background: #ea4335; color: white; }
+    .btn-warning { background: #fbbc04; color: #333; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 14px;
+      font-size: 0.9rem;
+    }
+
+    .alert-success { background: #e6f4ea; color: #137333; border: 1px solid #ceead6; }
+    .alert-error   { background: #fce8e6; color: #c5221f; border: 1px solid #f5c6c4; }
+    .alert-info    { background: #e8f0fe; color: #1967d2; border: 1px solid #c5d8fc; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th {
+      background: #f8f9fa;
+      padding: 11px 14px;
+      text-align: left;
+      font-weight: 600;
+      color: #555;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+
+    tr:hover td { background: #f8f9fa; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .badge-pendiente   { background: #fef3c7; color: #92400e; }
+    .badge-en_proceso  { background: #dbeafe; color: #1e40af; }
+    .badge-enviado     { background: #e0e7ff; color: #3730a3; }
+    .badge-entregado   { background: #dcfce7; color: #166534; }
+    .badge-cancelado   { background: #fee2e2; color: #991b1b; }
+
+    .productos-list { font-size: 0.82rem; color: #666; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      width: 520px;
+      max-width: 95vw;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    .modal h3 {
+      margin-bottom: 18px;
+      font-size: 1.1rem;
+      color: #1a73e8;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    #producto-list-edit .producto-item {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    #producto-list-edit .producto-item input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 0.85rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #aaa;
+      font-size: 0.95rem;
+    }
+
+    #msg-auth { margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Gestión de Pedidos</h1>
+  <span id="token-status">Sin sesion</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showSection('auth')">Autenticacion</button>
+  <button onclick="showSection('clientes')">Clientes</button>
+  <button onclick="showSection('pedidos')">Pedidos</button>
+</nav>
+
+<main>
+
+  <!-- SECCION AUTH -->
+  <div id="sec-auth" class="section active">
+    <div class="card">
+      <h2>Obtener Token JWT</h2>
+      <p style="margin-bottom:14px; font-size:0.9rem; color:#666;">
+        Genera tu token de acceso. Luego podras usar todas las secciones protegidas.
+      </p>
+      <div class="form-row">
+        <input type="text" id="auth-id" placeholder="ID de usuario (ej: user01)" />
+        <input type="text" id="auth-nombre" placeholder="Tu nombre" />
+      </div>
+      <button class="btn btn-primary" onclick="obtenerToken()">Obtener Token</button>
+      <div id="msg-auth"></div>
+      <div id="token-display" style="display:none; margin-top:14px;">
+        <label style="font-size:0.85rem; color:#555; font-weight:600;">Token activo:</label>
+        <textarea readonly style="width:100%; margin-top:6px; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:0.78rem; height:80px; background:#f8f9fa; resize:none;" id="token-text"></textarea>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Como usar la API</h2>
+      <p style="font-size:0.9rem; color:#555; line-height:1.7;">
+        1. Genera el token en esta seccion<br>
+        2. Ve a "Clientes" para crear y gestionar clientes<br>
+        3. Ve a "Pedidos" para crear pedidos asociados a un cliente<br>
+        4. La documentacion completa esta disponible en
+        <a href="/docs" target="_blank" style="color:#1a73e8;">/docs (Swagger)</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- SECCION CLIENTES -->
+  <div id="sec-clientes" class="section">
+    <div class="card">
+      <h2>Nuevo Cliente</h2>
+      <div class="form-row">
+        <input type="text" id="c-nombre" placeholder="Nombre completo" />
+        <input type="email" id="c-email" placeholder="Correo electronico" />
+      </div>
+      <div class="form-row">
+        <input type="text" id="c-telefono" placeholder="Telefono" />
+        <input type="text" id="c-direccion" placeholder="Direccion" />
+      </div>
+      <button class="btn btn-success" onclick="crearCliente()">Crear Cliente</button>
+      <div id="msg-clientes" style="margin-top:10px;"></div>
+    </div>
+    <div class="card">
+      <h2>Lista de Clientes <button class="btn btn-primary btn-sm" style="margin-left:10px;" onclick="cargarClientes()">Actualizar</button></h2>
+      <div id="tabla-clientes"><div class="empty-state">Haz clic en "Actualizar" para cargar los clientes</div></div>
+    </div>
+  </div>
+
+  <!-- SECCION PEDIDOS -->
+  <div id="sec-pedidos" class="section">
+    <div class="card">
+      <h2>Nuevo Pedido</h2>
+      <div class="form-row">
+        <select id="p-cliente">
+          <option value="">-- Selecciona un cliente --</option>
+        </select>
+        <input type="text" id="p-observaciones" placeholder="Observaciones (opcional)" />
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.85rem; font-weight:600; color:#555;">Productos:</label>
+        <div id="productos-container" style="margin-top:8px;"></div>
+        <button class="btn btn-warning btn-sm" style="margin-top:8px;" onclick="agregarProducto()">+ Agregar Producto</button>
+      </div>
+      <button class="btn btn-success" onclick="crearPedido()">Crear Pedido</button>
+      <div id="msg-pedidos" style="margin-top:10px;"></div>
+    </div>
+    <div class="card">
+      <h2>Lista de Pedidos <button class="btn btn-primary btn-sm" style="margin-left:10px;" onclick="cargarPedidos()">Actualizar</button></h2>
+      <div id="tabla-pedidos"><div class="empty-state">Haz clic en "Actualizar" para cargar los pedidos</div></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL EDITAR CLIENTE -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <h3>Editar Cliente</h3>
+    <input type="hidden" id="edit-c-id" />
+    <div class="form-row"><input type="text" id="edit-c-nombre" placeholder="Nombre" /></div>
+    <div class="form-row"><input type="email" id="edit-c-email" placeholder="Email" /></div>
+    <div class="form-row"><input type="text" id="edit-c-telefono" placeholder="Telefono" /></div>
+    <div class="form-row"><input type="text" id="edit-c-direccion" placeholder="Direccion" /></div>
+    <div class="modal-footer">
+      <button class="btn btn-warning" onclick="cerrarModal('modal-cliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="actualizarCliente()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PEDIDO -->
+<div class="modal-overlay" id="modal-pedido">
+  <div class="modal">
+    <h3>Editar Estado del Pedido</h3>
+    <input type="hidden" id="edit-p-id" />
+    <div class="form-row">
+      <select id="edit-p-estado">
+        <option value="pendiente">Pendiente</option>
+        <option value="en_proceso">En Proceso</option>
+        <option value="enviado">Enviado</option>
+        <option value="entregado">Entregado</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <input type="text" id="edit-p-observaciones" placeholder="Observaciones" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-warning" onclick="cerrarModal('modal-pedido')">Cancelar</button>
+      <button class="btn btn-primary" onclick="actualizarPedido()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = ''
+  let token = ''
+  let productosCount = 0
+
+  function headers() {
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+  }
+
+  function showSection(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'))
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'))
+    document.getElementById('sec-' + name).classList.add('active')
+    event.target.classList.add('active')
+    if (name === 'pedidos') cargarClientesSelect()
+  }
+
+  function mostrarMsg(id, msg, tipo) {
+    const el = document.getElementById(id)
+    el.innerHTML = '<div class="alert alert-' + tipo + '">' + msg + '</div>'
+    setTimeout(() => el.innerHTML = '', 4000)
+  }
+
+  // ---- AUTH ----
+  async function obtenerToken() {
+    const id = document.getElementById('auth-id').value.trim()
+    const nombre = document.getElementById('auth-nombre').value.trim()
+    if (!id || !nombre) return mostrarMsg('msg-auth', 'Completa los dos campos', 'error')
+
+    const res = await fetch(API + '/auth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, nombre })
+    })
+    const data = await res.json()
+    if (data.state) {
+      token = data.token
+      document.getElementById('token-status').textContent = 'Sesion activa: ' + nombre
+      document.getElementById('token-display').style.display = 'block'
+      document.getElementById('token-text').value = data.token
+      mostrarMsg('msg-auth', 'Token generado exitosamente. Ahora puedes usar Clientes y Pedidos.', 'success')
+    } else {
+      mostrarMsg('msg-auth', 'Error al generar token', 'error')
+    }
+  }
+
+  // ---- CLIENTES ----
+  async function crearCliente() {
+    if (!token) return mostrarMsg('msg-clientes', 'Primero obtene el token en la seccion Autenticacion', 'error')
+    const body = {
+      nombre: document.getElementById('c-nombre').value.trim(),
+      email: document.getElementById('c-email').value.trim(),
+      telefono: document.getElementById('c-telefono').value.trim(),
+      direccion: document.getElementById('c-direccion').value.trim()
+    }
+    if (!body.nombre || !body.email || !body.telefono || !body.direccion)
+      return mostrarMsg('msg-clientes', 'Todos los campos son requeridos', 'error')
+
+    const res = await fetch(API + '/clientes', { method: 'POST', headers: headers(), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.state) {
+      mostrarMsg('msg-clientes', 'Cliente creado exitosamente', 'success')
+      document.getElementById('c-nombre').value = ''
+      document.getElementById('c-email').value = ''
+      document.getElementById('c-telefono').value = ''
+      document.getElementById('c-direccion').value = ''
+      cargarClientes()
+    } else {
+      mostrarMsg('msg-clientes', 'Error: ' + (data.msg || 'no se pudo crear'), 'error')
+    }
+  }
+
+  async function cargarClientes() {
+    if (!token) return document.getElementById('tabla-clientes').innerHTML = '<div class="alert alert-info">Obtene el token primero</div>'
+    const res = await fetch(API + '/clientes', { headers: headers() })
+    const data = await res.json()
+    if (!data.state || !data.data.length) {
+      document.getElementById('tabla-clientes').innerHTML = '<div class="empty-state">No hay clientes registrados</div>'
+      return
+    }
+    let html = '<table><thead><tr><th>Nombre</th><th>Email</th><th>Telefono</th><th>Direccion</th><th>Acciones</th></tr></thead><tbody>'
+    data.data.forEach(c => {
+      html += `<tr>
+        <td>${c.nombre}</td>
+        <td>${c.email}</td>
+        <td>${c.telefono}</td>
+        <td>${c.direccion}</td>
+        <td>
+          <button class="btn btn-warning btn-sm" onclick="abrirEditCliente('${c._id}','${c.nombre}','${c.email}','${c.telefono}','${c.direccion}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="eliminarCliente('${c._id}')">Eliminar</button>
+        </td>
+      </tr>`
+    })
+    html += '</tbody></table>'
+    document.getElementById('tabla-clientes').innerHTML = html
+  }
+
+  function abrirEditCliente(id, nombre, email, telefono, direccion) {
+    document.getElementById('edit-c-id').value = id
+    document.getElementById('edit-c-nombre').value = nombre
+    document.getElementById('edit-c-email').value = email
+    document.getElementById('edit-c-telefono').value = telefono
+    document.getElementById('edit-c-direccion').value = direccion
+    document.getElementById('modal-cliente').classList.add('open')
+  }
+
+  async function actualizarCliente() {
+    const id = document.getElementById('edit-c-id').value
+    const body = {
+      nombre: document.getElementById('edit-c-nombre').value,
+      email: document.getElementById('edit-c-email').value,
+      telefono: document.getElementById('edit-c-telefono').value,
+      direccion: document.getElementById('edit-c-direccion').value
+    }
+    const res = await fetch(API + '/clientes/' + id, { method: 'PUT', headers: headers(), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.state) {
+      cerrarModal('modal-cliente')
+      cargarClientes()
+    }
+  }
+
+  async function eliminarCliente(id) {
+    if (!confirm('¿Eliminar este cliente?')) return
+    const res = await fetch(API + '/clientes/' + id, { method: 'DELETE', headers: headers() })
+    const data = await res.json()
+    if (data.state) cargarClientes()
+  }
+
+  async function cargarClientesSelect() {
+    if (!token) return
+    const res = await fetch(API + '/clientes', { headers: headers() })
+    const data = await res.json()
+    const sel = document.getElementById('p-cliente')
+    sel.innerHTML = '<option value="">-- Selecciona un cliente --</option>'
+    if (data.state) data.data.forEach(c => {
+      sel.innerHTML += `<option value="${c._id}">${c.nombre}</option>`
+    })
+  }
+
+  // ---- PRODUCTOS ----
+  function agregarProducto() {
+    const container = document.getElementById('productos-container')
+    const div = document.createElement('div')
+    div.className = 'form-row'
+    div.id = 'prod-' + productosCount
+    div.innerHTML = `
+      <input type="text" placeholder="Nombre del producto" class="prod-nombre" />
+      <input type="number" placeholder="Cantidad" class="prod-cantidad" min="1" style="max-width:100px;" />
+      <input type="number" placeholder="Precio unitario" class="prod-precio" min="0" style="max-width:150px;" />
+      <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">X</button>
+    `
+    container.appendChild(div)
+    productosCount++
+  }
+
+  // ---- PEDIDOS ----
+  async function crearPedido() {
+    if (!token) return mostrarMsg('msg-pedidos', 'Primero obtene el token', 'error')
+    const clienteId = document.getElementById('p-cliente').value
+    if (!clienteId) return mostrarMsg('msg-pedidos', 'Selecciona un cliente', 'error')
+
+    const nombres = document.querySelectorAll('.prod-nombre')
+    const cantidades = document.querySelectorAll('.prod-cantidad')
+    const precios = document.querySelectorAll('.prod-precio')
+
+    if (!nombres.length) return mostrarMsg('msg-pedidos', 'Agrega al menos un producto', 'error')
+
+    const productos = []
+    for (let i = 0; i < nombres.length; i++) {
+      if (!nombres[i].value || !cantidades[i].value || !precios[i].value)
+        return mostrarMsg('msg-pedidos', 'Completa todos los campos de los productos', 'error')
+      productos.push({
+        nombre: nombres[i].value,
+        cantidad: parseInt(cantidades[i].value),
+        precioUnitario: parseFloat(precios[i].value)
+      })
+    }
+
+    const body = {
+      cliente: clienteId,
+      productos,
+      observaciones: document.getElementById('p-observaciones').value
+    }
+
+    const res = await fetch(API + '/pedidos', { method: 'POST', headers: headers(), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.state) {
+      mostrarMsg('msg-pedidos', 'Pedido creado. Total: $' + data.data.total.toLocaleString(), 'success')
+      document.getElementById('productos-container').innerHTML = ''
+      document.getElementById('p-observaciones').value = ''
+      document.getElementById('p-cliente').value = ''
+      cargarPedidos()
+    } else {
+      mostrarMsg('msg-pedidos', 'Error: ' + (data.msg || 'no se pudo crear'), 'error')
+    }
+  }
+
+  async function cargarPedidos() {
+    if (!token) return document.getElementById('tabla-pedidos').innerHTML = '<div class="alert alert-info">Obtene el token primero</div>'
+    const res = await fetch(API + '/pedidos', { headers: headers() })
+    const data = await res.json()
+    if (!data.state || !data.data.length) {
+      document.getElementById('tabla-pedidos').innerHTML = '<div class="empty-state">No hay pedidos registrados</div>'
+      return
+    }
+    let html = '<table><thead><tr><th>Cliente</th><th>Productos</th><th>Estado</th><th>Total</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>'
+    data.data.forEach(p => {
+      const prods = p.productos.map(pr => pr.nombre + ' x' + pr.cantidad).join(', ')
+      const fecha = new Date(p.createdAt).toLocaleDateString('es-CO')
+      const cliente = p.cliente ? p.cliente.nombre : 'N/A'
+      html += `<tr>
+        <td>${cliente}</td>
+        <td><span class="productos-list">${prods}</span></td>
+        <td><span class="badge badge-${p.estado}">${p.estado}</span></td>
+        <td>$${p.total.toLocaleString()}</td>
+        <td>${fecha}</td>
+        <td>
+          <button class="btn btn-warning btn-sm" onclick="abrirEditPedido('${p._id}','${p.estado}','${p.observaciones || ''}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="eliminarPedido('${p._id}')">Eliminar</button>
+        </td>
+      </tr>`
+    })
+    html += '</tbody></table>'
+    document.getElementById('tabla-pedidos').innerHTML = html
+  }
+
+  function abrirEditPedido(id, estado, obs) {
+    document.getElementById('edit-p-id').value = id
+    document.getElementById('edit-p-estado').value = estado
+    document.getElementById('edit-p-observaciones').value = obs
+    document.getElementById('modal-pedido').classList.add('open')
+  }
+
+  async function actualizarPedido() {
+    const id = document.getElementById('edit-p-id').value
+    const body = {
+      estado: document.getElementById('edit-p-estado').value,
+      observaciones: document.getElementById('edit-p-observaciones').value
+    }
+    const res = await fetch(API + '/pedidos/' + id, { method: 'PUT', headers: headers(), body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.state) { cerrarModal('modal-pedido'); cargarPedidos() }
+  }
+
+  async function eliminarPedido(id) {
+    if (!confirm('¿Eliminar este pedido?')) return
+    const res = await fetch(API + '/pedidos/' + id, { method: 'DELETE', headers: headers() })
+    const data = await res.json()
+    if (data.state) cargarPedidos()
+  }
+
+  function cerrarModal(id) {
+    document.getElementById(id).classList.remove('open')
+  }
+
+  // Cerrar modal al hacer click fuera
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open') })
+  })
+</script>
+</body>
+</html>
