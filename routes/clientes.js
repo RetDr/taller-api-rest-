@@ -69,7 +69,7 @@ router.get('/', verificarToken, async (req, res) => {
     const clientes = await Cliente.find()
     res.json({ state: true, data: clientes })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 
@@ -139,7 +139,7 @@ router.get('/:id', verificarToken, async (req, res) => {
     if (!cliente) return res.status(401).json({ state: false, msg: 'Cliente no encontrado' })
     res.json({ state: true, data: cliente })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 
@@ -213,7 +213,7 @@ router.post('/', verificarToken, async (req, res) => {
     const saved = await cliente.save()
     res.status(201).json({ state: true, data: saved })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 
@@ -283,7 +283,7 @@ router.put('/:id', verificarToken, async (req, res) => {
     if (!cliente) return res.status(401).json({ state: false, msg: 'Cliente no encontrado' })
     res.json({ state: true, data: cliente })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 
@@ -338,7 +338,7 @@ router.delete('/:id', verificarToken, async (req, res) => {
     if (!cliente) return res.status(401).json({ state: false, msg: 'Cliente no encontrado' })
     res.json({ state: true, msg: 'Cliente eliminado correctamente' })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 

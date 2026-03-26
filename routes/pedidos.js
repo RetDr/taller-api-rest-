@@ -72,7 +72,7 @@ router.get('/', verificarToken, async (req, res) => {
     const pedidos = await Pedido.find().populate('cliente', 'nombre email telefono')
     res.json({ state: true, data: pedidos })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 
@@ -140,7 +140,7 @@ router.get('/:id', verificarToken, async (req, res) => {
     if (!pedido) return res.status(401).json({ state: false, msg: 'Pedido no encontrado' })
     res.json({ state: true, data: pedido })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 
@@ -221,7 +221,7 @@ router.post('/', verificarToken, async (req, res) => {
     const saved = await pedido.save()
     res.status(201).json({ state: true, data: saved })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 
@@ -288,7 +288,7 @@ router.put('/:id', verificarToken, async (req, res) => {
     if (!pedido) return res.status(401).json({ state: false, msg: 'Pedido no encontrado' })
     res.json({ state: true, data: pedido })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 
@@ -343,7 +343,7 @@ router.delete('/:id', verificarToken, async (req, res) => {
     if (!pedido) return res.status(401).json({ state: false, msg: 'Pedido no encontrado' })
     res.json({ state: true, msg: 'Pedido eliminado correctamente' })
   } catch (err) {
-    res.status(501).send(err.message)
+    res.status(501).json({ state: false, msg: err.message })
   }
 })
 

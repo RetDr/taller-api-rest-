@@ -40,9 +40,8 @@ const pedidoSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 // Calcular total automáticamente antes de guardar
-pedidoSchema.pre('save', function (next) {
+pedidoSchema.pre('save', async function () {
   this.total = this.productos.reduce((sum, p) => sum + (p.cantidad * p.precioUnitario), 0)
-  next()
 })
 
 module.exports = mongoose.model('Pedido', pedidoSchema)
