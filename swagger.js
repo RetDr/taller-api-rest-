@@ -13,6 +13,10 @@ const swaggerDefinition = {
   },
   servers: [
     {
+      url: 'https://taller-api-rest-vx6m.onrender.com',
+      description: 'Servidor en produccion (Render)'
+    },
+    {
       url: 'http://localhost:3000',
       description: 'Servidor local'
     }
